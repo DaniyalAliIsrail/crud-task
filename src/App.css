@@ -1,0 +1,36 @@
+/* @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500&display=swap'); */
+
+/* *{
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+} */
+
+.input-margin{
+margin-block: 3px;
+}
+
+.margin-top{
+  margin-top: 5px;
+}
+
+
+.input-todo-button{
+  width: 100%;
+}
+.add-todo-button{
+  width: 100%;
+}
+
+.table{
+
+  width: 80%;
+  margin: 0 auto;
+}
+
+.updatemodal{
+
+display: flex;
+flex-direction: column;
+gap: 10px;
+}
