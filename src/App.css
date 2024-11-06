@@ -5,13 +5,20 @@
   margin: 0;
   box-sizing: border-box;
 } */
+.plus-btn{
 
+  width: 80%;
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 auto;
+  padding: 6px;
+}
 .input-margin{
 margin-block: 3px;
 }
 
 .margin-top{
-  margin-top: 5px;
+  margin-top: 10px;
 }
 
 
