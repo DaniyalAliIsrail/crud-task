@@ -7,17 +7,35 @@ import { Column } from "primereact/column";
 import { Dialog } from "primereact/dialog";
 import "./App.css";
 function App() {
+  // Sidebar visibility state
+  const [visible, setVisible] = useState(false);
+
   const [todo, setTodo] = useState("");
+  const [todo2, setTodo2] = useState("");
   const [todos, setTodos] = useState(
     localStorage.getItem("todos")
       ? JSON.parse(localStorage.getItem("todos"))
       : []
   );
+
+  const addTodo = (data, data2) => {
+    console.log(data2);
+    const todoObject = {
+      id: Math.random(),
+      text: data,
+      text2: data2,
+    };
+
+    setTodos([...todos, todoObject]);
+    localStorage.setItem("todos", JSON.stringify([...todos, todoObject]));
+    setTodo("");
+    setTodo2("");
+  };
+
   const [dialogVisible, setDialogVisible] = useState(false); // Dialog dikhane ke liye state
-  const [selectedTodo, setSelectedTodo] = useState(null); // Jo todo update karna ho wo store karne ke liye
+  const [selectedTodo, setSelectedTodo] = useState(null); //Jotodo update karna howo store karnek liye
   const [updatedText, setUpdatedText] = useState(""); // Updated text ke liye state
-  // Sidebar visibility state
-  const [visible, setVisible] = useState(false);
+  const [updatedText2, setUpdatedText2] = useState("");
 
   useEffect(() => {
     // Component render hone pe local storage se todos load karna
@@ -26,17 +44,6 @@ function App() {
       setTodos(JSON.parse(storedTodos));
     }
   }, []);
-
-  const addTodo = (data) => {
-    console.log(data);
-    const todoObject = {
-      id: Math.random(),
-      text: data,
-    };
-    setTodos([...todos, todoObject]);
-    localStorage.setItem("todos", JSON.stringify([...todos, todoObject]));
-    setTodo("");
-  };
 
   const deleteTodo = (id) => {
     console.log(id);
@@ -49,27 +56,33 @@ function App() {
     // Dialog kholne ka function jab update button click ho
     setSelectedTodo(todo);
     setUpdatedText(todo.text);
+    setUpdatedText2(todo.text2);
     setDialogVisible(true);
   };
 
   const handleUpdate = () => {
-    // Update button pe click hone pe value update karne ka function
+    // Update function jab update button pe click ho
     const updatedTodos = todos.map((item) =>
-      item.id === selectedTodo.id ? { ...item, text: updatedText } : item
+      item.id === selectedTodo.id
+        ? { ...item, text: updatedText, text2: updatedText2 }
+        : item
     );
     setTodos(updatedTodos);
     localStorage.setItem("todos", JSON.stringify(updatedTodos));
-    setDialogVisible(false);
-    setSelectedTodo(null);
+    setDialogVisible(false); // Dialog close karna
+    setSelectedTodo(null); // Selected todo clear karna
   };
 
   // table content
-  const columns = [{ field: "text", header: "Todos" }];
+  const columns = [
+    { field: "text", header: "Todos" },
+    { field: "text2", header: "Todos2" },
+  ];
 
   return (
     <>
       <div className="card flex justify-content-center">
-        {/* Dialog component for updating todo */}
+      {/* open modal */}
         <Dialog
           header="Update Todo"
           visible={dialogVisible}
@@ -81,7 +94,13 @@ function App() {
               type="text"
               placeholder="Update your todo"
               value={updatedText}
-              onChange={(e) => setUpdatedText(e.target.value)} // Input change handle karna
+              onChange={(e) => setUpdatedText(e.target.value)} // 
+            />
+            <InputText
+              type="text"
+              placeholder="Update your todo2"
+              value={updatedText2}
+              onChange={(e) => setUpdatedText2(e.target.value)}
             />
             <Button label="Update" onClick={handleUpdate} className="mt-2" />
           </div>
@@ -93,9 +112,10 @@ function App() {
         <Sidebar visible={visible} onHide={() => setVisible(false)}>
           <h2>Todo App</h2>
           <div className="card flex justify-content-center">
-            <label className="input-margin" htmlFor="username">
+            {/* <label className="input-margin" htmlFor="username">
               Todo
-            </label>
+            </label> */}
+
             <InputText
               className="margin-top input-todo-button"
               type="text"
@@ -103,42 +123,47 @@ function App() {
               value={todo}
               onChange={(e) => setTodo(e.target.value)}
             />
+            <InputText
+              className="margin-top input-todo-button"
+              type="text"
+              value={todo2}
+              placeholder="Enter your Todo2"
+              onChange={(e) => setTodo2(e.target.value)}
+            />
             <Button
               className="margin-top add-todo-button"
-              onClick={() => addTodo(todo)}
+              onClick={() => addTodo(todo, todo2)}
               label="Add Todo"
             />
           </div>
         </Sidebar>
-        <Button icon="pi pi-arrow-right" onClick={() => setVisible(true)} />
+        <div className="plus-btn">
+        <Button icon="pi pi-plus" onClick={() => setVisible(true)} />
+      </div>
       </div>
 
       {/* table */}
 
       <div className="card table">
         <DataTable value={todos} tableStyle={{ minWidth: "50rem" }}>
-          {/* Table columns dynamically map karna */}
           {columns.map((col) => (
             <Column key={col.field} field={col.field} header={col.header} />
           ))}
-          {/* Action buttons ke liye column */}
           <Column
             header="Actions"
             body={(rowData) => (
               <div>
-                {/* Edit button */}
                 <Button
                   label="Edit"
                   icon="pi pi-pencil"
                   className="p-button-text p-button-warning"
-                  onClick={() => openUpdateDialog(rowData)} //update fun
+                  onClick={() => openUpdateDialog(rowData)}
                 />
-                {/* Delete button */}
                 <Button
                   label="Delete"
                   icon="pi pi-trash"
                   className="p-button-text p-button-danger"
-                  onClick={() => deleteTodo(rowData.id)} //del fun
+                  onClick={() => deleteTodo(rowData.id)}
                 />
               </div>
             )}
