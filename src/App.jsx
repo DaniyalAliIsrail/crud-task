@@ -1,25 +1,61 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Sidebar } from "primereact/sidebar";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
-import { Dialog } from "primereact/dialog";
+import { Paginator } from "primereact/paginator";
+import { useFormik } from "formik";
 import "./App.css";
+import Banner from "./component/Banner";
+
 function App() {
-  // Sidebar visibility state
   const [visible, setVisible] = useState(false);
 
-  const [todo, setTodo] = useState("");
-  const [todo2, setTodo2] = useState("");
-  const [todos, setTodos] = useState(
-    localStorage.getItem("todos")
-      ? JSON.parse(localStorage.getItem("todos"))
-      : []
-  );
+  const [todos, setTodos] = useState([]);
+  const formik = useFormik({
+    initialValues: {
+      todo: "",
+      todo2: "",
+    },
+    validate: (values) => {
+      console.log(values);
+      const errors = {};
+      console.log(errors);
 
+      if (!values.todo) {
+        errors.todo = "Name field are requireds";
+      } else if (values.todo.length < 4) {
+        errors.todo = "lenght must be 3 characters";
+      }
+
+      if (!values.todo2) {
+        errors.todo2 = "JobRoll field are requireds";
+      } else if (values.todo2.length < 4) {
+        errors.todo2 = "lenght must be 3 characters";
+      }
+
+      return errors;
+    },
+
+    onSubmit: (values) => {
+      console.log(values);
+      addTodo(values.todo, values.todo2);
+      formik.resetForm();
+      setVisible(false);
+    },
+  });
+
+  // Ye hook todos ko localStorage se load karne ke liye hai jab component render ho
+  useEffect(() => {
+    const storedTodos = localStorage.getItem("todos");
+    if (storedTodos) {
+      setTodos(JSON.parse(storedTodos));
+    }
+  }, []);
+
+  // ADD TODO
   const addTodo = (data, data2) => {
-    console.log(data2);
     const todoObject = {
       id: Math.random(),
       text: data,
@@ -28,147 +64,232 @@ function App() {
 
     setTodos([...todos, todoObject]);
     localStorage.setItem("todos", JSON.stringify([...todos, todoObject]));
-    setTodo("");
-    setTodo2("");
+    setVisible(false);
   };
 
-  const [dialogVisible, setDialogVisible] = useState(false); // Dialog dikhane ke liye state
-  const [selectedTodo, setSelectedTodo] = useState(null); //Jotodo update karna howo store karnek liye
-  const [updatedText, setUpdatedText] = useState(""); // Updated text ke liye state
-  const [updatedText2, setUpdatedText2] = useState("");
-
-  useEffect(() => {
-    // Component render hone pe local storage se todos load karna
-    const storedTodos = localStorage.getItem("todos");
-    if (storedTodos) {
-      setTodos(JSON.parse(storedTodos));
-    }
-  }, []);
-
+  // Delete TODO Fun
   const deleteTodo = (id) => {
-    console.log(id);
-    let newTodos = todos.filter((todo) => todo.id !== id);
+    const newTodos = todos.filter((todo) => todo.id !== id);
     setTodos(newTodos);
     localStorage.setItem("todos", JSON.stringify(newTodos));
   };
 
-  const openUpdateDialog = (todo) => {
-    // Dialog kholne ka function jab update button click ho
-    setSelectedTodo(todo);
-    setUpdatedText(todo.text);
-    setUpdatedText2(todo.text2);
-    setDialogVisible(true);
+  const [editVisible, setEditVisible] = useState(false);
+  const [currentTodo, setCurrentTodo] = useState(null);
+
+  const openEditModal = (todo) => {
+    setCurrentTodo(todo); 
+    setEditVisible(true);
   };
 
-  const handleUpdate = () => {
-    // Update function jab update button pe click ho
-    const updatedTodos = todos.map((item) =>
-      item.id === selectedTodo.id
-        ? { ...item, text: updatedText, text2: updatedText2 }
-        : item
+  const handleEditChange = (e, field) => {
+    setCurrentTodo({ ...currentTodo, [field]: e.target.value });
+  };
+
+  // Update todo Fun
+  const updateTodo = () => {
+    const updatedTodos = todos.map((todo) =>
+      todo.id === currentTodo.id ? currentTodo : todo
     );
     setTodos(updatedTodos);
     localStorage.setItem("todos", JSON.stringify(updatedTodos));
-    setDialogVisible(false); // Dialog close karna
-    setSelectedTodo(null); // Selected todo clear karna
   };
 
-  // table content
+  // Pagination 
+  const [first, setFirst] = useState(0);
+  const [rows, setRows] = useState(3);
+  const [currentPageData, setCurrentPageData] = useState([]);
+
+  // Ye function pagination ke change par updated data set karta hai
+  const onPageChange = (e) => {
+    setFirst(e.first);
+    setRows(e.rows);
+    const endIndex = e.first + e.rows; 
+    setCurrentPageData(todos.slice(e.first, endIndex)); 
+  };
+
+  // Ye effect pagination ke update ke sath todos ko sync karne ke liye hai
+  useEffect(() => {
+    const endIndex = first + rows;
+    setCurrentPageData(todos.slice(first, endIndex));
+  }, [todos, first, rows]);
+
+  const template3 = {
+    layout:
+      "PrevPageLink PageLinks NextPageLink RowsPerPageDropdown CurrentPageReport",
+    CurrentPageReport: (options) => {
+      return (
+        <span
+          style={{
+            color: "var(--text-color)",
+            userSelect: "none",
+            width: "120px",
+            textAlign: "center",
+          }}
+        >
+          {options.first} - {options.last} of {options.totalRecords}
+        </span>
+      );
+    },
+  };
+
   const columns = [
-    { field: "text", header: "Todos" },
-    { field: "text2", header: "Todos2" },
+    { field: "text", header: "Name" },
+    { field: "text2", header: "Job Roll" },
   ];
 
   return (
     <>
-      <div className="card flex justify-content-center">
-      {/* open modal */}
-        <Dialog
-          header="Update Todo"
-          visible={dialogVisible}
-          style={{ width: "40vw" }}
-          onHide={() => setDialogVisible(false)}
-        >
-          <div className="updatemodal">
-            <InputText
-              type="text"
-              placeholder="Update your todo"
-              value={updatedText}
-              onChange={(e) => setUpdatedText(e.target.value)} // 
-            />
-            <InputText
-              type="text"
-              placeholder="Update your todo2"
-              value={updatedText2}
-              onChange={(e) => setUpdatedText2(e.target.value)}
-            />
-            <Button label="Update" onClick={handleUpdate} className="mt-2" />
+      <Banner />
+      <div className="container">
+        <div className="sidebar">
+          <h2>Sidebar</h2>
+          <p>This sidebar will stay sticky.</p>
+          <p>This sidebar will stay sticky.</p>
+        </div>
+        <div className="main-content">
+          {/* nav-banner-style-type */}
+          <div className="nav-banner-TypeStyle">
+            <div className="nav-banner1">
+              <div>
+                <i
+                  className="pi pi-user"
+                  style={{ fontSize: "1rem", padding: "5px" }}
+                ></i>
+                <span>People</span>
+              </div>
+
+              <div className="nav-banner2">
+                <div>
+                  <Button
+                    onClick={() => setVisible(true)}
+                    icon="pi pi-plus"
+                    size="small"
+                    label="People"
+                  />
+                </div>
+                <div
+                  className="pi pi-refresh"
+                  style={{ fontSize: "1.5rem", color: "blue" }}
+                  onClick={() => window.location.reload()}
+                ></div>
+              </div>
+            </div>
           </div>
-        </Dialog>
-      </div>
 
-      {/* sidebar */}
-      <div className="card flex justify-content-center">
-        <Sidebar visible={visible} onHide={() => setVisible(false)}>
-          <h2>Todo App</h2>
+          {/* Sidebar for adding new todos */}
           <div className="card flex justify-content-center">
-            {/* <label className="input-margin" htmlFor="username">
-              Todo
-            </label> */}
+            <Sidebar
+              visible={visible}
+              position="right"
+              onHide={() => setVisible(false)}
+            >
+              <h2>Todo App</h2>
+              <form onSubmit={formik.handleSubmit}>
+                <InputText
+                  className="margin-top input-todo-button"
+                  type="text"
+                  placeholder="Enter your Name"
+                  name="todo"
+                  value={formik.values.todo}
+                  onChange={formik.handleChange}
+                />
+                {formik.errors.todo && (
+                  <div style={{ color: "red", marginBlock: "5px" }}>
+                    {formik.errors.todo}
+                  </div>
+                )}
+                <InputText
+                  className="margin-top input-todo-button"
+                  type="text"
+                  placeholder="Enter Job Roll"
+                  name="todo2"
+                  value={formik.values.todo2}
+                  onChange={formik.handleChange}
+                />
 
+                {formik.errors.todo2 && (
+                  <div style={{ color: "red", marginBlock: "5px" }}>
+                    {formik.errors.todo2}
+                  </div>
+                )}
+
+                <Button
+                  className="add-todo-button"
+                  type="submit"
+                  label="Add Todo"
+                />
+              </form>
+            </Sidebar>
+          </div>
+
+          {/* Edit modal */}
+          <Sidebar visible={editVisible} onHide={() => setEditVisible(false)}>
+            <h2>Edit Todo</h2>
             <InputText
-              className="margin-top input-todo-button"
               type="text"
-              placeholder="Enter your Todo"
-              value={todo}
-              onChange={(e) => setTodo(e.target.value)}
+              className="margin-top input-todo-button"
+              placeholder="Update Name"
+              value={currentTodo?.text || ""}
+              onChange={(e) => handleEditChange(e, "text")}
             />
             <InputText
-              className="margin-top input-todo-button"
               type="text"
-              value={todo2}
-              placeholder="Enter your Todo2"
-              onChange={(e) => setTodo2(e.target.value)}
+              className="margin-top input-todo-button"
+              placeholder="Update Job Roll"
+              value={currentTodo?.text2 || ""}
+              onChange={(e) => handleEditChange(e, "text2")}
             />
             <Button
-              className="margin-top add-todo-button"
-              onClick={() => addTodo(todo, todo2)}
-              label="Add Todo"
+              className="add-update-button"
+              onClick={updateTodo}
+              label="Update Todo"
             />
+          </Sidebar>
+
+          {/* Table with Pagination */}
+          <div className="card table">
+            <DataTable scrollable scrollHeight="460px" value={currentPageData}>
+              {columns.map((col) => (
+                <Column key={col.field}
+                 field={col.field}
+                  header={col.header}
+                  sortable />
+              ))}
+              <Column
+                header="Actions"
+                body={(rowData) => (
+                  <div>
+                    <Button
+                      label="Edit"
+                      icon="pi pi-pencil"
+                      className="p-button-text p-button-warning"
+                      onClick={() => openEditModal(rowData)}
+                    />
+                    <Button
+                      label="Delete"
+                      icon="pi pi-trash"
+                      className="p-button-text p-button-danger"
+                      onClick={() => deleteTodo(rowData.id)}
+                    />
+                  </div>
+                )}
+              />
+            </DataTable>
+
+            <div>
+              <Paginator
+                style={{ width: "80%", maxWidth: "1200px" }}
+                first={first}
+                rows={rows}
+                totalRecords={todos.length} // Total todos count
+                rowsPerPageOptions={[3, 5, 10]}
+                onPageChange={onPageChange}
+                template={template3}
+              />
+            </div>
           </div>
-        </Sidebar>
-        <div className="plus-btn">
-        <Button icon="pi pi-plus" onClick={() => setVisible(true)} />
-      </div>
-      </div>
-
-      {/* table */}
-
-      <div className="card table">
-        <DataTable value={todos} tableStyle={{ minWidth: "50rem" }}>
-          {columns.map((col) => (
-            <Column key={col.field} field={col.field} header={col.header} />
-          ))}
-          <Column
-            header="Actions"
-            body={(rowData) => (
-              <div>
-                <Button
-                  label="Edit"
-                  icon="pi pi-pencil"
-                  className="p-button-text p-button-warning"
-                  onClick={() => openUpdateDialog(rowData)}
-                />
-                <Button
-                  label="Delete"
-                  icon="pi pi-trash"
-                  className="p-button-text p-button-danger"
-                  onClick={() => deleteTodo(rowData.id)}
-                />
-              </div>
-            )}
-          />
-        </DataTable>
+        </div>
       </div>
     </>
   );
