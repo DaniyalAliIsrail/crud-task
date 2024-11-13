@@ -6,10 +6,25 @@ import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Paginator } from "primereact/paginator";
 import { useFormik } from "formik";
+// import Banner from "./Components/Banner";
 import "./App.css";
-import Banner from "./component/Banner";
+// import NavbarType from "./Components/NavbarType";
+import { IconField } from "primereact/iconfield";
+import { InputIcon } from "primereact/inputicon";
+import { FilterMatchMode, FilterOperator } from "primereact/api";
+import LoadingComp from "./components/LoadingComp";
+import Banner from "./components/Banner";
+// import LoadingComp from "./Components/LoadingComp";
 
 function App() {
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const [visible, setVisible] = useState(false);
 
   const [todos, setTodos] = useState([]);
@@ -78,7 +93,7 @@ function App() {
   const [currentTodo, setCurrentTodo] = useState(null);
 
   const openEditModal = (todo) => {
-    setCurrentTodo(todo); 
+    setCurrentTodo(todo);
     setEditVisible(true);
   };
 
@@ -93,19 +108,19 @@ function App() {
     );
     setTodos(updatedTodos);
     localStorage.setItem("todos", JSON.stringify(updatedTodos));
+    setEditVisible(false);
   };
 
-  // Pagination 
+  // Pagination
   const [first, setFirst] = useState(0);
-  const [rows, setRows] = useState(3);
+  const [rows, setRows] = useState(5);
   const [currentPageData, setCurrentPageData] = useState([]);
 
-  // Ye function pagination ke change par updated data set karta hai
   const onPageChange = (e) => {
     setFirst(e.first);
     setRows(e.rows);
-    const endIndex = e.first + e.rows; 
-    setCurrentPageData(todos.slice(e.first, endIndex)); 
+    const endIndex = e.first + e.rows;
+    setCurrentPageData(todos.slice(e.first, endIndex));
   };
 
   // Ye effect pagination ke update ke sath todos ko sync karne ke liye hai
@@ -117,6 +132,7 @@ function App() {
   const template3 = {
     layout:
       "PrevPageLink PageLinks NextPageLink RowsPerPageDropdown CurrentPageReport",
+
     CurrentPageReport: (options) => {
       return (
         <span
@@ -132,6 +148,21 @@ function App() {
       );
     },
   };
+
+  //serach filter
+
+  const [globalFilterValue, setGlobalFilterValue] = useState("");
+  const onGlobalFilterChange = (e) => {
+    const value = e.target.value;
+    let _filters = { ...filters };
+    _filters["global"].value = value;
+    setFilters(_filters);
+    setGlobalFilterValue(value);
+  };
+
+  const [filters, setFilters] = useState({
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  });
 
   const columns = [
     { field: "text", header: "Name" },
@@ -149,30 +180,46 @@ function App() {
         </div>
         <div className="main-content">
           {/* nav-banner-style-type */}
-          <div className="nav-banner-TypeStyle">
-            <div className="nav-banner1">
-              <div>
-                <i
-                  className="pi pi-user"
-                  style={{ fontSize: "1rem", padding: "5px" }}
-                ></i>
-                <span>People</span>
-              </div>
 
-              <div className="nav-banner2">
+          <div>
+            <div className="nav-banner-TypeStyle">
+              <div className="nav-banner1">
                 <div>
-                  <Button
-                    onClick={() => setVisible(true)}
-                    icon="pi pi-plus"
-                    size="small"
-                    label="People"
-                  />
+                  <i
+                    className="pi pi-user"
+                    style={{ fontSize: "1rem", padding: "5px" }}
+                  ></i>
+                  <span>People</span>
                 </div>
-                <div
-                  className="pi pi-refresh"
-                  style={{ fontSize: "1.5rem", color: "blue" }}
-                  onClick={() => window.location.reload()}
-                ></div>
+
+                <div className="nav-banner2">
+                  <div className="flex justify-content-end">
+                    <div className="flex justify-content-end">
+                      <IconField iconPosition="left">
+                        <InputIcon className="pi pi-search" />
+                        <InputText
+                          value={globalFilterValue}
+                          onChange={onGlobalFilterChange}
+                          className="p-inputtext-sm"
+                          placeholder="Search Anything"
+                        />
+                      </IconField>
+                    </div>
+                  </div>
+                  <div>
+                    <Button
+                      onClick={() => setVisible(true)}
+                      icon="pi pi-plus"
+                      size="small"
+                      label="People"
+                    />
+                  </div>
+                  <div
+                    className="pi pi-refresh"
+                    style={{ fontSize: "1.5rem", color: "blue" }}
+                    onClick={() => window.location.reload()}
+                  ></div>
+                </div>
               </div>
             </div>
           </div>
@@ -248,42 +295,67 @@ function App() {
           </Sidebar>
 
           {/* Table with Pagination */}
-          <div className="card table">
-            <DataTable scrollable scrollHeight="460px" value={currentPageData}>
-              {columns.map((col) => (
-                <Column key={col.field}
-                 field={col.field}
-                  header={col.header}
-                  sortable />
-              ))}
-              <Column
-                header="Actions"
-                body={(rowData) => (
-                  <div>
-                    <Button
-                      label="Edit"
-                      icon="pi pi-pencil"
-                      className="p-button-text p-button-warning"
-                      onClick={() => openEditModal(rowData)}
-                    />
-                    <Button
-                      label="Delete"
-                      icon="pi pi-trash"
-                      className="p-button-text p-button-danger"
-                      onClick={() => deleteTodo(rowData.id)}
-                    />
-                  </div>
-                )}
-              />
-            </DataTable>
 
-            <div>
+          <div className=" table">
+            {loading ? (
+              <LoadingComp />
+            ) : (
+              <>
+                <DataTable
+                  // className="data-table"
+                  style={{
+                    // border: "1px solid blue",
+                    width: "100%",
+                    textAlign: "center",
+                    marginTop:"6px"
+                  }}
+                
+                  scrollHeight="400px"
+                  value={currentPageData}
+                  globalFilterFields={["text", "text2"]}
+                  filters={filters}
+                >
+                  {columns.map((col) => (
+                    <Column
+                      style={{  width: "33%" }}
+                      key={col.field}
+                      field={col.field}
+                      header={col.header}
+                      sortable
+                    />
+                  ))}
+                  <Column
+                    header="Actions"
+                    // style={{ border: "1px solid green" }}
+                    body={(rowData) => (
+                      <div
+                      >
+                        <Button
+                          label="Edit"
+                          icon="pi pi-pencil"
+                          className="p-button-text p-button-warning"
+                          onClick={() => openEditModal(rowData)}
+                        />
+                        <Button
+                          label="Delete"
+                          icon="pi pi-trash"
+                          className="p-button-text p-button-danger"
+                          onClick={() => deleteTodo(rowData.id)}
+                        />
+                      </div>
+                    )}
+                  />
+                </DataTable>
+              </>
+            )}
+
+            <div className="pagination">
               <Paginator
-                style={{ width: "80%", maxWidth: "1200px" }}
+                // style={{ width: "80%", maxWidth: "1200px" }}
                 first={first}
                 rows={rows}
-                totalRecords={todos.length} // Total todos count
-                rowsPerPageOptions={[3, 5, 10]}
+                totalRecords={todos.length}
+                rowsPerPageOptions={[5, 10]}
                 onPageChange={onPageChange}
                 template={template3}
               />
